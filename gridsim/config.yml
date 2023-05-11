@@ -1,0 +1,5 @@
+# Universal parameters
+random_seed: 0
+samplerate: 20000
+duration: 10
+
