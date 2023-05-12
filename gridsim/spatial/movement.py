@@ -10,15 +10,22 @@ np.random.seed(42)
 Apteronotus_leptorhynchus_movement = dict(
     forward_s=0.2,
     backward_s=0.1,
-    backward_h=0.01,
-    peak_veloc=0.2,
+    backward_h=0.1,
+    mode_veloc=0.2,
+    max_veloc=1,
     measurement_fs=30,
 )
 
 wavefish_movement = dict(Alepto=Apteronotus_leptorhynchus_movement)
 
 
-def directionPDF(forward_s, backward_s, backward_h, measurement_fs=30, target_fs=3):
+def directionPDF(
+    forward_s,
+    backward_s,
+    backward_h,
+    measurement_fs=30,
+    target_fs=3,
+):
     forward_s = np.sqrt((1 / target_fs) / (1 / measurement_fs)) * forward_s
     backward_s = np.sqrt((1 / target_fs) / (1 / measurement_fs)) * backward_s
 
@@ -29,8 +36,6 @@ def directionPDF(forward_s, backward_s, backward_h, measurement_fs=30, target_fs
     probabilities = (p_forward1 + p_forward2 + p_backward) / np.sum(
         p_forward1 + p_forward2 + p_backward
     )
-    plt.plot(directions, probabilities)
-    plt.show()
 
     return directions, probabilities
 
@@ -54,7 +59,7 @@ def stepPDF(max_veloc: float, duration: int, target_fs: int = 3) -> np.ndarray:
     Returns
     -------
     np.ndarray
-        Array of step values representing a stochastic step function with the given parameters.
+        Array of step values.
 
     """
 
@@ -68,12 +73,33 @@ def stepPDF(max_veloc: float, duration: int, target_fs: int = 3) -> np.ndarray:
     # scale the meters per second to the time step specified by the
     # target sampling frequency
     g = g * (1 / target_fs)
-    embed()
 
     return g
 
 
-def make_steps(duration, fs, species="Alepto"):
+def steps(duration=600, fs=30, species="Alepto", plot=False):
+    """
+    Makes steps (distance) and directions (trajectories) of a random walker
+    in a 2D space.
+
+    Parameters
+    ----------
+    duration : int, optional
+        Total duration of simulation, by default 600
+    fs : int, optional
+        Sampling rate, by default 30
+    species : str, optional
+        The species key, by default "Alepto"
+    plot : bool, optional
+        Enable or disable plotting the probability distributions
+        underlying the parameters, by default False
+
+    Returns
+    -------
+    Tuple(np.ndarray, np.ndarray)
+        Tuple of trajectories and steps.
+
+    """
     # get the probability distribution of directions
     directions, probabilities = directionPDF(
         wavefish_movement[species]["forward_s"],
@@ -85,22 +111,33 @@ def make_steps(duration, fs, species="Alepto"):
 
     # make random step lengths according to a gamma distribution
     steps = stepPDF(
-        wavefish_movement[species]["peak_veloc"],
+        wavefish_movement[species]["max_veloc"],
         duration,
         fs,
     )
+    if plot:
+        fig, ax = plt.subplots(1, 1, subplot_kw=dict(polar=True))
+        ax.plot(directions, probabilities)
+        ax.set_theta_offset(np.pi / 2)
+        plt.show()
+
+        fig, ax = plt.subplots(1, 1)
+        ax.hist(steps, bins=100)
+        plt.show()
 
     # draw random directions according to the probability distribution
-    trajectories = np.random.choice(directions, size=(duration * fs) - 1, p=probabilities)
+    trajectories = np.random.choice(
+        directions, size=(duration * fs) - 1, p=probabilities
+    )
 
     return trajectories, steps
 
 
-def make_positions(
-    origin: Tuple[float, float],
-    boundaries: Tuple[float, float, float, float],
+def positions(
     trajectories: np.ndarray,
     steps: np.ndarray,
+    origin: Tuple[float, float] = (0, 0),
+    boundaries: Tuple[float, float, float, float] = (-5, 5, -5, 5),
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Simulates a random walk with a given set of trajectories and step sizes.
@@ -170,26 +207,33 @@ def make_positions(
         or np.any(y < boundaries[2])
         or np.any(y > boundaries[3])
     ):
-        x[x < boundaries[0]] = boundaries[0] + (boundaries[0] - x[x < boundaries[0]])
-        x[x > boundaries[1]] = boundaries[1] - (x[x > boundaries[1]] - boundaries[1])
-        y[y < boundaries[2]] = boundaries[2] + (boundaries[2] - y[y < boundaries[2]])
-        y[y > boundaries[3]] = boundaries[3] - (y[y > boundaries[3]] - boundaries[3])
+        x[x < boundaries[0]] = boundaries[0] + (
+            boundaries[0] - x[x < boundaries[0]]
+        )
+        x[x > boundaries[1]] = boundaries[1] - (
+            x[x > boundaries[1]] - boundaries[1]
+        )
+        y[y < boundaries[2]] = boundaries[2] + (
+            boundaries[2] - y[y < boundaries[2]]
+        )
+        y[y > boundaries[3]] = boundaries[3] - (
+            y[y > boundaries[3]] - boundaries[3]
+        )
 
     return x, y
 
 
 def main():
-    origin = (0, 0)
-    boundaries = (-5, 5, -5, 5)
-    duration = 1300
-    fs = 3
-
-    trajectories, steps = make_steps(duration, fs, species="Alepto")
-    x, y = make_positions(origin, boundaries, trajectories, steps)
+    n_fish = 3
     fig, ax = plt.subplots()
-    ax.plot(x, y, marker=".")
-    ax.set_xlim(boundaries[0], boundaries[1])
-    ax.set_ylim(boundaries[2], boundaries[3])
+
+    for _ in range(n_fish):
+        trajectories, s = steps()
+        x, y = positions(trajectories, s)
+        ax.scatter(x, y, marker=".")
+
+    ax.set_xlim(-5, 5)
+    ax.set_ylim(-5, 5)
     ax.set_aspect("equal")
     plt.show()
 

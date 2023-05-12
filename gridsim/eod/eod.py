@@ -117,7 +117,8 @@ def wavefish_spectrum(
     else:
         if fish not in wavefish_harmonics:
             raise KeyError(
-                "unknown wavefish. Choose one of " + ", ".join(wavefish_harmonics.keys())
+                "unknown wavefish. Choose one of "
+                + ", ".join(wavefish_harmonics.keys())
             )
         amplitudes = np.array(wavefish_harmonics[fish]["amplitudes"])
         phases = np.array(wavefish_harmonics[fish]["phases"])
@@ -135,7 +136,7 @@ def wavefish_spectrum(
     return amplitudes, phases
 
 
-def wavefish_eods(
+def eod(
     fish: Union[str, Dict[str, Union[List[float], np.ndarray]]] = "Alepto",
     frequency: Union[float, np.ndarray] = 100.0,
     samplerate: float = 44100.0,
@@ -210,13 +211,13 @@ def wavefish_eods(
 
 
 def main():
-    eod = wavefish_eods(
+    sig = eod(
         "Alepto",
         frequency=100.0,
         samplerate=44100.0,
         duration=0.05,
     )
-    plt.plot(eod)
+    plt.plot(sig)
     plt.show()
 
 

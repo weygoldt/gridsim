@@ -20,15 +20,19 @@ class ChirpParams:
     All parameters for simulating the frequency trace of chirps.
     """
 
-    eodf: float = 500.0
+    eodf: float = 0
     samplerate: float = 44100.0
     duration: float = 0.2
     chirp_times: List[float] = field(default_factory=lambda: np.array([0.1]))
     chirp_size: List[float] = field(default_factory=lambda: np.array([100.0]))
     chirp_width: List[float] = field(default_factory=lambda: np.array([0.01]))
-    chirp_undershoot: List[float] = field(default_factory=lambda: np.array([0.1]))
+    chirp_undershoot: List[float] = field(
+        default_factory=lambda: np.array([0.1])
+    )
     chirp_kurtosis: List[float] = field(default_factory=lambda: np.array([1.0]))
-    chirp_contrasts: List[float] = field(default_factory=lambda: np.array([0.05]))
+    chirp_contrasts: List[float] = field(
+        default_factory=lambda: np.array([0.05])
+    )
 
 
 @dataclass
@@ -37,7 +41,7 @@ class RiseParams:
     All parameters for simulating the frequency trace of rises.
     """
 
-    eodf: float = 500
+    eodf: float = 0
     samplerate: float = 44100.0
     duration: float = 5.0
     rise_times: List[float] = field(default_factory=lambda: np.array([0.5]))
@@ -46,7 +50,9 @@ class RiseParams:
     decay_tau: List[float] = field(default_factory=lambda: np.array([0.1]))
 
 
-def gaussian(chirp_t: np.ndarray, mu: float, width: float, kurt: float) -> np.ndarray:
+def gaussian(
+    chirp_t: np.ndarray, mu: float, width: float, kurt: float
+) -> np.ndarray:
     """
     Compute a Gaussian curve with the specified parameters.
 

@@ -1,5 +1,55 @@
-# Universal parameters
-random_seed: 0
-samplerate: 20000
-duration: 10
+meta:
+  random_seed: 0
+  samplerate: 20000
+  duration: 10
+
+randgrid:
+  space:
+    grid: [4, 4]
+    shape: "hex"
+    spacing: [0.5, 0.5]
+    limits: [-5, 5, -5, 5]
+  time:
+    duration: 300
+    samplerate: 20000
+  fish:
+    species: ["fakefish"]
+    nfish: [5, 10]
+    nchirps: [10, 50]
+    nrises: [5, 10]
+
+species:
+  sine: "Sinewave"
+  fakefish: "Alepto inspired EOD"
+  alepto: "Apteronotus leptorhynchus"
+  arostratus: "Apteronotus rostratus"
+  eigenmannia: "Eigenmannia virescens"
+  sternarchella: "Sternarchella terminalis"
+  sternopygus: "Sternopygus macrurus"
+
+fish:
+  fakefish:
+    eod:
+      frequency: [400, 1200]
+      harmonics:
+        amplitudes: [0.90062, 0.15311, 0.072049, 0.012609, 0.011708]
+        phases: [1.3623, 2.3246, 0.9869, 2.6492, -2.6885]
+      chirp:
+        sizes: [60, 200]
+        durations: [0.005, 0.1]
+        kurtoses: [0.6, 1.4]
+        contrasts: [0.0, 1.0]
+        undershoot: [0.0, 0.5]
+      rise:
+        sizes: [10, 100]
+        rise_tau: [0.005, 0.1]
+        decay_tau: [1, 15]
+    body:
+      size: [0.05, 0.25]
+    movement:
+      forward_s: 0.2
+      backward_s: 0.1
+      backward_h: 0.1
+      mode_veloc: 0.2
+      max_veloc: 1
 
