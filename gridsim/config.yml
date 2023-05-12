@@ -18,6 +18,7 @@ randgrid:
     nfish: [5, 10]
     nchirps: [10, 50]
     nrises: [5, 10]
+  outpath: "../../simulations/randgrid"
 
 species:
   sine: "Sinewave"
@@ -52,7 +53,7 @@ fish:
     movement:
       forward_s: 0.2
       backward_s: 0.1
-      backward_h: 0.1
+      backward_h: 0.01
       mode_veloc: 0.2
       max_veloc: 1
 

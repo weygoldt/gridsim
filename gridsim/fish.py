@@ -37,12 +37,12 @@ class Fish:
         self.chirp_trace, self.chirp_amp = chirps(self.chirps_params)
         self.rise_trace = rises(self.rises_params)
 
-        frequencies = self.chirp_trace + self.rise_trace + eodf
+        self.frequency = self.chirp_trace + self.rise_trace + eodf
 
         signal = eod(
             amplitudes=amplitudes,
             phases=phases,
-            frequency=frequencies,
+            frequency=self.frequency,
             samplerate=self.chirps_params.samplerate,
             duration=self.chirps_params.duration,
             phase0=self.fish_params.eod.phase0,

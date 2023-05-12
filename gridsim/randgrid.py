@@ -5,6 +5,9 @@ Generate a random grid recording based on the parameters from the
 configuration file.
 """
 
+import pathlib
+
+import matplotlib.pyplot as plt
 import numpy as np
 from eod.communication import ChirpParams, RiseParams
 from fish import Fish
@@ -161,35 +164,102 @@ def randfish(conf):
 
 
 def rand_grid():
-    import matplotlib.pyplot as plt
-
     nfish = np.random.randint(
         conf.randgrid.fish.nfish[0],
         conf.randgrid.fish.nfish[1],
     )
 
-    electrode_x, electrode_y = grid(
+    ex, ey = grid(
         conf.randgrid.space.origin,
         conf.randgrid.space.grid,
         conf.randgrid.space.spacing,
         conf.randgrid.space.shape,
     )
 
-    fig, ax = plt.subplots()
-    for iter in track(range(nfish), description="Generating fish"):
+    track_freqs = []
+    track_powers = []
+    ypos = []
+    xpos = []
+    track_idents = []
+    track_indices = []
+    chirp_times = []
+    chirp_ids = []
+    rise_times = []
+    rise_ids = []
+
+    nelectrodes = len(np.ravel(ex))
+    for iter in track(range(nfish), description="Simulating fish", total=nfish):
+        # generate a random fish
         fish = randfish(conf)
-        ax.plot(fish.x, fish.y, alpha=0.5)
 
-    ax.scatter(electrode_x, electrode_y, marker="x", color="red", zorder=10)
-    ax.set_aspect("equal")
-    plt.show()
+        # compute the distance at every position to every electrode
+        dists = np.sqrt(
+            (fish.x[:, None] - ex[None, :]) ** 2
+            + (fish.y[:, None] - ey[None, :]) ** 2
+        )
 
-    con.log(f"Generated {nfish} fish")
+        # make the distance sqared and invert it
+        dists = -(dists**2)
+
+        # truncate at -1 and shift up to make it multipliable
+        dists[dists < -1] = -1
+        dists = dists + 1
+
+        # add the fish signal onto all electrodes
+        grid_signals = np.tile(fish.eod, (nelectrodes, 1)).T
+
+        # attentuate the signals by the distances
+        attenuated_signals = grid_signals * dists
+
+        # collect signals
+        if iter == 0:
+            signal = attenuated_signals
+        else:
+            signal += attenuated_signals
+
+        track_freqs.append(fish.frequency)
+        track_powers.append(dists)
+        xpos.append(fish.x)
+        ypos.append(fish.y)
+        track_idents.append(np.ones_like(fish.x) * iter)
+        track_indices.append(np.arange(len(fish.x)))
+        chirp_times.append(fish.chirps_params.chirp_times)
+        chirp_ids.append(np.ones_like(fish.chirps_params.chirp_times) * iter)
+        rise_times.append(fish.rises_params.rise_times)
+        rise_ids.append(np.ones_like(fish.rises_params.rise_times) * iter)
+
+    track_freqs = np.concatenate(track_freqs)
+    track_powers = np.concatenate(track_powers)
+    xpos = np.concatenate(xpos)
+    ypos = np.concatenate(ypos)
+    track_idents = np.concatenate(track_idents)
+    track_indices = np.concatenate(track_indices)
+    chirp_times = np.concatenate(chirp_times)
+    chirp_ids = np.concatenate(chirp_ids)
+    rise_times = np.concatenate(rise_times)
+    rise_ids = np.concatenate(rise_ids)
+    times = np.arange(len(signal)) / conf.randgrid.time.samplerate
+
+    outpath = pathlib.Path(conf.randgrid.outpath)
+    outpath.mkdir(parents=True, exist_ok=True)
+    np.save(outpath / "raw.npy", signal)
+    np.save(outpath / "times.npy", times)
+    np.save(outpath / "fund_v.npy", track_freqs)
+    np.save(outpath / "power_v.npy", track_powers)
+    np.save(outpath / "xpos.npy", xpos)
+    np.save(outpath / "ypos.npy", ypos)
+    np.save(outpath / "ident_v.npy", track_idents)
+    np.save(outpath / "index_v.npy", track_indices)
+    np.save(outpath / "chirp_times.npy", chirp_times)
+    np.save(outpath / "chirp_ids.npy", chirp_ids)
+    np.save(outpath / "rise_times.npy", rise_times)
+    np.save(outpath / "rise_ids.npy", rise_ids)
+
+    con.print(f"Saved {nfish} fish")
 
 
 def main():
     rand_grid()
-    pass
 
 
 if __name__ == "__main__":
