@@ -1,22 +1,31 @@
+from dataclasses import dataclass, field
 from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 from IPython import embed
+from scipy.interpolate import interp1d
 from scipy.stats import gamma, norm
 
 np.random.seed(42)
 
-Apteronotus_leptorhynchus_movement = dict(
-    forward_s=0.2,
-    backward_s=0.1,
-    backward_h=0.1,
-    mode_veloc=0.2,
-    max_veloc=1,
-    measurement_fs=30,
-)
 
-wavefish_movement = dict(Alepto=Apteronotus_leptorhynchus_movement)
+@dataclass
+class MovementParams:
+    """
+    All parameters for simulating the movement of a fish.
+    """
+
+    duration: int = 600
+    origin: Tuple[float, float] = (0, 0)
+    boundaries: Tuple[float, float, float, float] = (-5, 5, -5, 5)
+    forward_s: float = 0.2
+    backward_s: float = 0.1
+    backward_h: float = 0.1
+    mode_veloc: float = 0.2
+    max_veloc: float = 1
+    measurement_fs: float = 30
+    target_fs: int = 30
 
 
 def directionPDF(
@@ -77,7 +86,7 @@ def stepPDF(max_veloc: float, duration: int, target_fs: int = 3) -> np.ndarray:
     return g
 
 
-def steps(duration=600, fs=30, species="Alepto", plot=False):
+def steps(MovementParams):
     """
     Makes steps (distance) and directions (trajectories) of a random walker
     in a 2D space.
@@ -102,32 +111,25 @@ def steps(duration=600, fs=30, species="Alepto", plot=False):
     """
     # get the probability distribution of directions
     directions, probabilities = directionPDF(
-        wavefish_movement[species]["forward_s"],
-        wavefish_movement[species]["backward_s"],
-        wavefish_movement[species]["backward_h"],
-        wavefish_movement[species]["measurement_fs"],
-        fs,
+        MovementParams.forward_s,
+        MovementParams.backward_s,
+        MovementParams.backward_h,
+        MovementParams.measurement_fs,
+        MovementParams.measurement_fs,
     )
 
     # make random step lengths according to a gamma distribution
     steps = stepPDF(
-        wavefish_movement[species]["max_veloc"],
-        duration,
-        fs,
+        MovementParams.max_veloc,
+        MovementParams.duration,
+        MovementParams.measurement_fs,
     )
-    if plot:
-        fig, ax = plt.subplots(1, 1, subplot_kw=dict(polar=True))
-        ax.plot(directions, probabilities)
-        ax.set_theta_offset(np.pi / 2)
-        plt.show()
-
-        fig, ax = plt.subplots(1, 1)
-        ax.hist(steps, bins=100)
-        plt.show()
 
     # draw random directions according to the probability distribution
     trajectories = np.random.choice(
-        directions, size=(duration * fs) - 1, p=probabilities
+        directions,
+        size=(MovementParams.duration * MovementParams.measurement_fs) - 1,
+        p=probabilities,
     )
 
     return trajectories, steps
@@ -136,8 +138,7 @@ def steps(duration=600, fs=30, species="Alepto", plot=False):
 def positions(
     trajectories: np.ndarray,
     steps: np.ndarray,
-    origin: Tuple[float, float] = (0, 0),
-    boundaries: Tuple[float, float, float, float] = (-5, 5, -5, 5),
+    MovementParams,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Simulates a random walk with a given set of trajectories and step sizes.
@@ -167,6 +168,9 @@ def positions(
         A tuple of two 1D arrays representing the final x and y
         positions of the trajectories.
     """
+    origin = MovementParams.origin
+    boundaries = MovementParams.boundaries
+
     x = np.full(len(trajectories) + 1, np.nan)
     y = np.full(len(trajectories) + 1, np.nan)
     x[0] = origin[0]
@@ -198,6 +202,19 @@ def positions(
     # cumulatively add the steps to the positions
     x = np.cumsum(x)
     y = np.cumsum(y)
+
+    # interpolate the position to the target fs
+    time_sim = np.arange(
+        0, MovementParams.duration, 1 / MovementParams.measurement_fs
+    )
+    time_target = np.arange(
+        0, MovementParams.duration, 1 / MovementParams.target_fs
+    )
+    xinterper = interp1d(time_sim, x, kind="cubic", fill_value="extrapolate")
+    yinterper = interp1d(time_sim, y, kind="cubic", fill_value="extrapolate")
+
+    x = xinterper(time_target)
+    y = yinterper(time_target)
 
     # fold back the positions if they are outside the boundaries
     boundaries = np.ravel(boundaries)
