@@ -6,8 +6,8 @@ meta:
 randgrid:
   space:
     origin: [0, 0]
-    grid: [4, 4]
-    shape: "hex"
+    grid: [2, 2]
+    shape: "square"
     spacing: 0.5
     limits: [-1, 1, -1, 1]
   time:
