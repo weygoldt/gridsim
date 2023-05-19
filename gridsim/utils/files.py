@@ -4,13 +4,31 @@
 A module that keeps common tools to handle files.
 """
 
+import pathlib
 from typing import Union
 
+import numpy as np
 import yaml
 from rich import print
+from thunderfish.dataloader import DataLoader
 
 
 def todict(obj, classkey=None):
+    """Recursively convert an object into a dictionary.
+
+    Parameters
+    ----------
+    obj : _object_
+        Some object to convert into a dictionary.
+    classkey : str, optional
+        The key to that should be converted. If None,
+        converts everything in the object. By default None
+
+    Returns
+    -------
+    dict
+        The converted dictionary.
+    """
     if isinstance(obj, dict):
         data = {}
         for k, v in obj.items():
@@ -86,3 +104,64 @@ class Config:
         Pretty print the `Config` object.
         """
         print(todict(self))
+
+
+class WaveTrackerDataset:
+    def __init__(self, datapath: pathlib.Path) -> None:
+        if not datapath.is_dir():
+            raise NotADirectoryError(f"{datapath} is not a directory")
+
+        self.path = datapath
+        self.date = datapath.name
+
+        if pathlib.Path(datapath / "raw.npy").exists():
+            self.raw = np.load(datapath / "raw.npy", allow_pickle=True)
+            self.samplerate = 20000.0
+        elif pathlib.Path(datapath / "traces-grid1.raw").exists():
+            self.raw = DataLoader(
+                datapath / "traces-grid1.raw", 60.0, 0, channel=-1
+            )
+            self.samplerate = self.raw.samplerate
+        else:
+            raise FileNotFoundError(
+                f"Could not find raw data file in {datapath}"
+            )
+
+        self.n_electrodes = self.raw.shape[1]
+
+        self.track_times = np.load(datapath / "times.npy", allow_pickle=True)
+        self.track_freqs = np.load(datapath / "fund_v.npy", allow_pickle=True)
+        self.track_indices = np.load(datapath / "idx_v.npy", allow_pickle=True)
+        self.track_idents = np.load(datapath / "ident_v.npy", allow_pickle=True)
+        self.track_powers = np.load(datapath / "sign_v.npy", allow_pickle=True)
+        self.ids = np.unique(self.track_idents[~np.isnan(self.track_idents)])
+
+    def save(self):
+        np.save(self.path / "times.npy", self.track_times)
+        np.save(self.path / "fund_v.npy", self.track_freqs)
+        np.save(self.path / "idx_v.npy", self.track_indices)
+        np.save(self.path / "ident_v.npy", self.track_idents)
+        np.save(self.path / "sign_v.npy", self.track_powers)
+        np.save(self.path / "raw.npy", self.raw)
+
+    def __repr__(self) -> str:
+        return f"WaveTrackerDataset({self.file})"
+
+    def __str__(self) -> str:
+        return f"WaveTrackerDataset({self.file})"
+
+
+class SimulatedDataset(WaveTrackerDataset):
+    def __init__(self, datapath: pathlib.Path) -> None:
+        super().__init__(datapath)
+
+        self.chirp_times = np.load(datapath / "chirp_times.npy")
+        self.chirp_ids = np.load(datapath / "chirp_ids.npy")
+        self.rise_times = np.load(datapath / "rise_times.npy")
+        self.rise_ids = np.load(datapath / "rise_ids.npy")
+
+    def __repr__(self) -> str:
+        return f"SimulatedDataset({self.file})"
+
+    def __str__(self) -> str:
+        return f"SimulatedDataset({self.file})"

@@ -14,9 +14,11 @@ from fish import Fish
 from IPython import embed
 from rich.console import Console
 from rich.progress import track
+from scipy.signal import resample
 from spatial.grid import grid
 from spatial.movement import MovementParams
 from utils.files import Config
+from utils.filters import lowpass_filter
 
 conf = Config("config.yml")
 con = Console()
@@ -188,7 +190,7 @@ def rand_grid():
     rise_ids = []
 
     nelectrodes = len(np.ravel(ex))
-    for iter in track(range(nfish), description="Simulating fish", total=nfish):
+    for iter in track(range(nfish), description=f"Generating {nfish} fish"):
         # generate a random fish
         fish = randfish(conf)
 
@@ -217,12 +219,37 @@ def rand_grid():
         else:
             signal += attenuated_signals
 
-        track_freqs.append(fish.frequency)
-        track_powers.append(dists)
-        xpos.append(fish.x)
-        ypos.append(fish.y)
-        track_idents.append(np.ones_like(fish.x) * iter)
-        track_indices.append(np.arange(len(fish.x)))
+        # downsample the tracking arrays
+        num = int(
+            np.round(
+                conf.randgrid.time.track_samplerate
+                / conf.randgrid.time.samplerate
+                * len(fish.frequency)
+            )
+        )
+        f = resample(fish.frequency_track, num)
+        p = resample(dists, num, axis=0)
+        x = resample(fish.x, num)
+        y = resample(fish.y, num)
+        # t = resample(fish.time, num)
+
+        # filter to remove resampling artifacts
+        f = lowpass_filter(f, 10, conf.randgrid.time.track_samplerate)
+        f[f < fish.eodf] = fish.eodf
+        p = np.vstack(
+            [
+                lowpass_filter(pi, 10, conf.randgrid.time.track_samplerate)
+                for pi in p.T
+            ]
+        ).T
+        p[p < 0] = 0
+
+        track_freqs.append(f)
+        track_powers.append(p)
+        xpos.append(x)
+        ypos.append(y)
+        track_idents.append(np.ones_like(f) * iter)
+        track_indices.append(np.arange(len(f)))
         chirp_times.append(fish.chirps_params.chirp_times)
         chirp_ids.append(np.ones_like(fish.chirps_params.chirp_times) * iter)
         rise_times.append(fish.rises_params.rise_times)
@@ -239,17 +266,18 @@ def rand_grid():
     rise_times = np.concatenate(rise_times)
     rise_ids = np.concatenate(rise_ids)
     times = np.arange(len(signal)) / conf.randgrid.time.samplerate
+    t = np.arange(0, times[-1], 1 / conf.randgrid.time.track_samplerate)
 
     outpath = pathlib.Path(conf.randgrid.outpath)
     outpath.mkdir(parents=True, exist_ok=True)
     np.save(outpath / "raw.npy", signal)
-    np.save(outpath / "times.npy", times)
+    np.save(outpath / "times.npy", t)
     np.save(outpath / "fund_v.npy", track_freqs)
-    np.save(outpath / "power_v.npy", track_powers)
+    np.save(outpath / "sign_v.npy", track_powers)
     np.save(outpath / "xpos.npy", xpos)
     np.save(outpath / "ypos.npy", ypos)
     np.save(outpath / "ident_v.npy", track_idents)
-    np.save(outpath / "index_v.npy", track_indices)
+    np.save(outpath / "idx_v.npy", track_indices)
     np.save(outpath / "chirp_times.npy", chirp_times)
     np.save(outpath / "chirp_ids.npy", chirp_ids)
     np.save(outpath / "rise_times.npy", rise_times)

@@ -13,9 +13,10 @@ randgrid:
   time:
     duration: 300
     samplerate: 20000
+    track_samplerate: 3
   fish:
     species: "fakefish"
-    nfish: [5, 10]
+    nfish: [5, 8]
     nchirps: [10, 50]
     nrises: [5, 10]
   outpath: "../../simulations/randgrid"
@@ -40,10 +41,10 @@ fish:
       noise_std: 0.01
       chirp:
         sizes: [60, 200]
-        durations: [0.005, 0.1]
-        kurtosis: [0.6, 1.4]
-        contrasts: [0.0, 1.0]
-        undershoots: [0.0, 0.5]
+        durations: [0.01, 0.08]
+        kurtosis: [1, 2]
+        contrasts: [0.2, 1.0]
+        undershoots: [0.0, 0.01]
       rise:
         sizes: [10, 100]
         rise_tau: [0.005, 0.1]

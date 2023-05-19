@@ -38,6 +38,7 @@ class Fish:
         self.rise_trace = rises(self.rises_params)
 
         self.frequency = self.chirp_trace + self.rise_trace + eodf
+        self.frequency_track = self.rise_trace + eodf
 
         signal = eod(
             amplitudes=amplitudes,
@@ -53,22 +54,6 @@ class Fish:
 
         t, s = steps(MovementParams)
         x, y = positions(t, s, MovementParams)
-
-        # time_sim = np.arange(
-        #     0, self.chirps_params.duration, 1 / MovementParams.target_fs
-        # )
-        # time_target = np.arange(
-        #     0, self.chirps_params.duration, 1 / self.chirps_params.samplerate
-        # )
-        # interper_x = interp1d(
-        #     time_sim, x, kind="cubic", fill_value="extrapolate"
-        # )
-        # interper_y = interp1d(
-        #     time_sim, y, kind="cubic", fill_value="extrapolate"
-        # )
-
-        # x = interper_x(time_target)
-        # y = interper_y(time_target)
 
         self.x = x
         self.y = y
