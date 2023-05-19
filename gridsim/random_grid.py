@@ -278,10 +278,10 @@ def rand_grid():
     np.save(outpath / "ypos.npy", ypos)
     np.save(outpath / "ident_v.npy", track_idents)
     np.save(outpath / "idx_v.npy", track_indices)
-    np.save(outpath / "chirp_times.npy", chirp_times)
-    np.save(outpath / "chirp_ids.npy", chirp_ids)
-    np.save(outpath / "rise_times.npy", rise_times)
-    np.save(outpath / "rise_ids.npy", rise_ids)
+    np.save(outpath / "chirp_times_gt.npy", chirp_times)
+    np.save(outpath / "chirp_ids_gt.npy", chirp_ids)
+    np.save(outpath / "rise_times_gt.npy", rise_times)
+    np.save(outpath / "rise_ids_gt.npy", rise_ids)
 
     con.print(f"Saved {nfish} fish")
 

@@ -155,10 +155,10 @@ class SimulatedDataset(WaveTrackerDataset):
     def __init__(self, datapath: pathlib.Path) -> None:
         super().__init__(datapath)
 
-        self.chirp_times = np.load(datapath / "chirp_times.npy")
-        self.chirp_ids = np.load(datapath / "chirp_ids.npy")
-        self.rise_times = np.load(datapath / "rise_times.npy")
-        self.rise_ids = np.load(datapath / "rise_ids.npy")
+        self.chirp_times = np.load(datapath / "chirp_times_gt.npy")
+        self.chirp_ids = np.load(datapath / "chirp_ids_gt.npy")
+        self.rise_times = np.load(datapath / "rise_times_gt.npy")
+        self.rise_ids = np.load(datapath / "rise_ids_gt.npy")
 
     def __repr__(self) -> str:
         return f"SimulatedDataset({self.file})"
