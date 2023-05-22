@@ -1,5 +1,5 @@
 meta:
-  random_seed: 0
+  random_seed: 1234
   samplerate: 20000
   duration: 10
 
@@ -19,7 +19,7 @@ randgrid:
     nfish: [5, 8]
     nchirps: [10, 50]
     nrises: [5, 10]
-  outpath: "../../simulations/randgrid"
+  outpath: "../../../local_data/randgrid"
 
 species:
   sine: "Sinewave"
@@ -31,6 +31,7 @@ species:
   sternopygus: "Sternopygus macrurus"
 
 fish:
+
   fakefish:
     eod:
       frequency: [400, 1200]
@@ -57,4 +58,6 @@ fish:
       backward_h: 0.01
       mode_veloc: 0.2
       max_veloc: 1
+  
+
 

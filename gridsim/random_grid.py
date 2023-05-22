@@ -10,7 +10,7 @@ import pathlib
 import matplotlib.pyplot as plt
 import numpy as np
 from eod.communication import ChirpParams, RiseParams
-from fish import Fish
+from eod.fish import Fish
 from IPython import embed
 from rich.console import Console
 from rich.progress import track
@@ -70,11 +70,11 @@ def rand_chirps(conf: Config) -> ChirpParams:
         samplerate=samplerate,
         duration=duration,
         chirp_times=ctimes,
-        chirp_size=csizes,
-        chirp_width=cdurations,
+        chirp_sizes=csizes,
+        chirp_widths=cdurations,
         chirp_kurtosis=ckurtosis,
         chirp_contrasts=ccontrasts,
-        chirp_undershoot=cundershoots,
+        chirp_undershoots=cundershoots,
     )
 
     return cp
@@ -114,9 +114,9 @@ def rand_rises(conf: Config) -> RiseParams:
         samplerate=samplerate,
         duration=duration,
         rise_times=rtimes,
-        rise_size=rsizes,
-        rise_tau=rrise_taus,
-        decay_tau=rdecay_taus,
+        rise_sizes=rsizes,
+        rise_taus=rrise_taus,
+        decay_taus=rdecay_taus,
     )
 
     return rp
@@ -185,6 +185,9 @@ def rand_grid():
     track_idents = []
     track_indices = []
     chirp_times = []
+    chirp_sizes = []
+    chirp_undershoots = []
+    chirp_widths = []
     chirp_ids = []
     rise_times = []
     rise_ids = []
@@ -196,8 +199,7 @@ def rand_grid():
 
         # compute the distance at every position to every electrode
         dists = np.sqrt(
-            (fish.x[:, None] - ex[None, :]) ** 2
-            + (fish.y[:, None] - ey[None, :]) ** 2
+            (fish.x[:, None] - ex[None, :]) ** 2 + (fish.y[:, None] - ey[None, :]) ** 2
         )
 
         # make the distance sqared and invert it
@@ -210,7 +212,7 @@ def rand_grid():
         # add the fish signal onto all electrodes
         grid_signals = np.tile(fish.eod, (nelectrodes, 1)).T
 
-        # attentuate the signals by the distances
+        # attentuate the signals by the squared distances
         attenuated_signals = grid_signals * dists
 
         # collect signals
@@ -231,17 +233,14 @@ def rand_grid():
         p = resample(dists, num, axis=0)
         x = resample(fish.x, num)
         y = resample(fish.y, num)
-        # t = resample(fish.time, num)
 
         # filter to remove resampling artifacts
         f = lowpass_filter(f, 10, conf.randgrid.time.track_samplerate)
         f[f < fish.eodf] = fish.eodf
         p = np.vstack(
-            [
-                lowpass_filter(pi, 10, conf.randgrid.time.track_samplerate)
-                for pi in p.T
-            ]
+            [lowpass_filter(pi, 10, conf.randgrid.time.track_samplerate) for pi in p.T]
         ).T
+
         p[p < 0] = 0
 
         track_freqs.append(f)
@@ -251,6 +250,9 @@ def rand_grid():
         track_idents.append(np.ones_like(f) * iter)
         track_indices.append(np.arange(len(f)))
         chirp_times.append(fish.chirps_params.chirp_times)
+        chirp_widths.append(fish.chirps_params.chirp_widths)
+        chirp_sizes.append(fish.chirps_params.chirp_sizes)
+        chirp_undershoots.append(fish.chirps_params.chirp_undershoots)
         chirp_ids.append(np.ones_like(fish.chirps_params.chirp_times) * iter)
         rise_times.append(fish.rises_params.rise_times)
         rise_ids.append(np.ones_like(fish.rises_params.rise_times) * iter)
@@ -262,6 +264,9 @@ def rand_grid():
     track_idents = np.concatenate(track_idents)
     track_indices = np.concatenate(track_indices)
     chirp_times = np.concatenate(chirp_times)
+    chirp_widths = np.concatenate(chirp_widths)
+    chirp_heights = np.concatenate(chirp_sizes)
+    chirp_undershoots = np.concatenate(chirp_undershoots)
     chirp_ids = np.concatenate(chirp_ids)
     rise_times = np.concatenate(rise_times)
     rise_ids = np.concatenate(rise_ids)
@@ -279,6 +284,9 @@ def rand_grid():
     np.save(outpath / "ident_v.npy", track_idents)
     np.save(outpath / "idx_v.npy", track_indices)
     np.save(outpath / "chirp_times_gt.npy", chirp_times)
+    np.save(outpath / "chirp_widths_gt.npy", chirp_widths)
+    np.save(outpath / "chirp_heights_gt.npy", chirp_heights)
+    np.save(outpath / "chirp_undershoots_gt.npy", chirp_undershoots)
     np.save(outpath / "chirp_ids_gt.npy", chirp_ids)
     np.save(outpath / "rise_times_gt.npy", rise_times)
     np.save(outpath / "rise_ids_gt.npy", rise_ids)

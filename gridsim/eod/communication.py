@@ -25,15 +25,11 @@ class ChirpParams:
     samplerate: float = 44100.0
     duration: float = 0.2
     chirp_times: List[float] = field(default_factory=lambda: np.array([0.1]))
-    chirp_size: List[float] = field(default_factory=lambda: np.array([100.0]))
-    chirp_width: List[float] = field(default_factory=lambda: np.array([0.01]))
-    chirp_undershoot: List[float] = field(
-        default_factory=lambda: np.array([0.1])
-    )
+    chirp_sizes: List[float] = field(default_factory=lambda: np.array([100.0]))
+    chirp_widths: List[float] = field(default_factory=lambda: np.array([0.01]))
+    chirp_undershoots: List[float] = field(default_factory=lambda: np.array([0.1]))
     chirp_kurtosis: List[float] = field(default_factory=lambda: np.array([1.0]))
-    chirp_contrasts: List[float] = field(
-        default_factory=lambda: np.array([0.05])
-    )
+    chirp_contrasts: List[float] = field(default_factory=lambda: np.array([0.05]))
 
 
 @dataclass
@@ -46,14 +42,12 @@ class RiseParams:
     samplerate: float = 44100.0
     duration: float = 5.0
     rise_times: List[float] = field(default_factory=lambda: np.array([0.5]))
-    rise_size: List[float] = field(default_factory=lambda: np.array([80.0]))
-    rise_tau: List[float] = field(default_factory=lambda: np.array([0.01]))
-    decay_tau: List[float] = field(default_factory=lambda: np.array([0.1]))
+    rise_sizes: List[float] = field(default_factory=lambda: np.array([80.0]))
+    rise_taus: List[float] = field(default_factory=lambda: np.array([0.01]))
+    decay_taus: List[float] = field(default_factory=lambda: np.array([0.1]))
 
 
-def gaussian(
-    chirp_t: np.ndarray, mu: float, width: float, kurt: float
-) -> np.ndarray:
+def gaussian(chirp_t: np.ndarray, mu: float, width: float, kurt: float) -> np.ndarray:
     """
     Compute a Gaussian curve with the specified parameters.
 
@@ -107,9 +101,9 @@ def chirps(params: ChirpParams) -> tuple[np.ndarray, np.ndarray]:
 
     for time, width, undershoot, size, kurtosis, contrast in zip(
         params.chirp_times,
-        params.chirp_width,
-        params.chirp_undershoot,
-        params.chirp_size,
+        params.chirp_widths,
+        params.chirp_undershoots,
+        params.chirp_sizes,
         params.chirp_kurtosis,
         params.chirp_contrasts,
     ):
@@ -159,7 +153,7 @@ def rises(params: RiseParams) -> np.ndarray:
     frequency = params.eodf * np.ones(n)
 
     for time, size, riset, decayt in zip(
-        params.rise_times, params.rise_size, params.rise_tau, params.decay_tau
+        params.rise_times, params.rise_sizes, params.rise_taus, params.decay_taus
     ):
         # rise frequency waveform:
         rise_t = np.arange(0.0, 10.0 * decayt, 1.0 / params.samplerate)
