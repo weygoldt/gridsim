@@ -41,8 +41,8 @@ fish:
       phase0: 0
       noise_std: 0.01
       chirp:
-        sizes: [60, 200]
-        durations: [0.01, 0.08]
+        sizes: [60, 400]
+        durations: [0.01, 0.4]
         kurtosis: [1, 2]
         contrasts: [0.2, 1.0]
         undershoots: [0.0, 0.01]
