@@ -193,9 +193,11 @@ def rand_grid():
     rise_ids = []
 
     nelectrodes = len(np.ravel(ex))
-    for iter in track(range(nfish), description=f"Generating {nfish} fish"):
+    for iter in range(nfish):
         # generate a random fish
         fish = randfish(conf)
+        embed()
+        exit()
 
         # compute the distance at every position to every electrode
         dists = np.sqrt(
