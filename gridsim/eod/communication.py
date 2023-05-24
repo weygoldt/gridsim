@@ -27,9 +27,13 @@ class ChirpParams:
     chirp_times: List[float] = field(default_factory=lambda: np.array([0.1]))
     chirp_sizes: List[float] = field(default_factory=lambda: np.array([100.0]))
     chirp_widths: List[float] = field(default_factory=lambda: np.array([0.01]))
-    chirp_undershoots: List[float] = field(default_factory=lambda: np.array([0.1]))
+    chirp_undershoots: List[float] = field(
+        default_factory=lambda: np.array([0.1])
+    )
     chirp_kurtosis: List[float] = field(default_factory=lambda: np.array([1.0]))
-    chirp_contrasts: List[float] = field(default_factory=lambda: np.array([0.05]))
+    chirp_contrasts: List[float] = field(
+        default_factory=lambda: np.array([0.05])
+    )
 
 
 @dataclass
@@ -47,7 +51,9 @@ class RiseParams:
     decay_taus: List[float] = field(default_factory=lambda: np.array([0.1]))
 
 
-def gaussian(chirp_t: np.ndarray, mu: float, width: float, kurt: float) -> np.ndarray:
+def gaussian(
+    chirp_t: np.ndarray, mu: float, width: float, kurt: float
+) -> np.ndarray:
     """
     Compute a Gaussian curve with the specified parameters.
 
@@ -71,6 +77,46 @@ def gaussian(chirp_t: np.ndarray, mu: float, width: float, kurt: float) -> np.nd
     chirp_sig = 0.5 * width / (2.0 * np.log(10.0)) ** (0.5 / kurt)
     curve = np.exp(-0.5 * (((chirp_t - mu) / chirp_sig) ** 2.0) ** kurt)
     return curve
+
+
+def chirp_model(
+    x, mu1, mu2, width1, width2, height, undershoot, kurtosis1, kurtosis2
+):
+    """
+    Compute a chirp model with the specified parameters.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        The x-values of the curve.
+    mu1 : float
+        The mean of the first Gaussian curve.
+    mu2 : float
+        The mean of the second Gaussian curve.
+    width1 : float
+        The width of the first Gaussian curve.
+    width2 : float
+        The width of the second Gaussian curve.
+    height : float
+        The height of the first Gaussian curve.
+    undershoot : float
+        The height of the second Gaussian curve relative to the first Gaussian
+        curve.
+    kurtosis1 : float
+        The kurtosis of the first Gaussian curve. A kurtosis of 1 corresponds to
+        a Gaussian distribution.
+    kurtosis2 : float
+        The kurtosis of the second Gaussian curve. A kurtosis of 1 corresponds to
+        a Gaussian distribution.
+
+    Returns
+    -------
+    numpy.ndarray
+        The values of the chirp model evaluated at the given x-values.
+    """
+    g1 = gaussian(x, mu1, width1, kurtosis1)
+    g2 = gaussian(x, mu2, width2, kurtosis2)
+    return height * g1 - height * undershoot * g2
 
 
 def chirps(params: ChirpParams) -> tuple[np.ndarray, np.ndarray]:
@@ -153,7 +199,10 @@ def rises(params: RiseParams) -> np.ndarray:
     frequency = params.eodf * np.ones(n)
 
     for time, size, riset, decayt in zip(
-        params.rise_times, params.rise_sizes, params.rise_taus, params.decay_taus
+        params.rise_times,
+        params.rise_sizes,
+        params.rise_taus,
+        params.decay_taus,
     ):
         # rise frequency waveform:
         rise_t = np.arange(0.0, 10.0 * decayt, 1.0 / params.samplerate)
