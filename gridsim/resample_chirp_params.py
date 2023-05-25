@@ -17,77 +17,98 @@ from scipy.signal.windows import tukey
 
 
 def load_dataset(path: pathlib.Path):
-    files = list(path.glob("*freq_fit.npy"))
-    print(f"Found {len(files)} files.")
+    freq_fits = list(path.glob("*freq_fit.npy"))
+    env_fits = list(path.glob("*env_fit.npy"))
 
-    params = []
-    for file in files:
-        param = np.load(file)
-        params.append(param)
-    params = np.concatenate(params)
-    return params
+    print(f"Found {len(env_fits)} files.")
+
+    freq_params = []
+    env_params = []
+    for freq, env in zip(freq_fits, env_fits):
+        fps = np.load(freq)
+        eps = np.load(env)
+        freq_params.append(fps)
+        env_params.append(eps)
+    freq_params = np.concatenate(freq_params)
+    env_params = np.concatenate(env_params)
+    return freq_params, env_params
 
 
 def resample_chirp_params(path: pathlib.Path):
-    fits = load_dataset(path)
+    freq_fits, env_fits = load_dataset(path)
 
     params = [
+        "amp1",
+        "std1",
         "mu1",
-        "mu2",
-        "widht1",
-        "widht2",
-        "height",
-        "undershoot",
         "kurt1",
+        "amp2",
+        "std2",
+        "mu2",
         "kurt2",
+        "amp3",
+        "std3",
+        "mu3",
+        "kurt3",
     ]
 
-    # remove the nan colums
-    fits = fits[~np.isnan(fits).any(axis=1)]
+    # remove the nan colums in both parameter matrices
+    freq_fits = freq_fits[:, ~np.isnan(freq_fits).any(axis=0)]
+    env_fits = env_fits[:, ~np.isnan(env_fits).any(axis=0)]
 
-    # sort by chirp duration
-    fits = fits[np.argsort(fits[:, 2])]
+    # sort by std of first gaussian of freq
+    env_fits = env_fits[np.argsort(freq_fits[:, 1])]
+    freq_fits = freq_fits[np.argsort(freq_fits[:, 1])]
 
     # remote outliers in all dimensions
-    for i in range(fits.shape[1]):
-        fits = fits[
-            np.abs(fits[:, i] - np.mean(fits[:, i])) < 10 * np.std(fits[:, i])
-        ]
+    # for i in range(fits.shape[1]):
+    #     fits = fits[np.abs(fits[:, i] - np.mean(fits[:, i])) < 10 * np.std(fits[:, i])]
 
-        # specifically remove too high kurt2 values
-        if i == 7:
-            fits = fits[
-                np.abs(fits[:, i] - np.mean(fits[:, i])) < np.std(fits[:, i])
-            ]
+    #     # specifically remove too high kurt2 values
+    #     if i == 7:
+    #         fits = fits[np.abs(fits[:, i] - np.mean(fits[:, i])) < np.std(fits[:, i])]
 
     # interpolate to make more
-    old_x = np.arange(fits.shape[0])
-    new_x = np.linspace(0, fits.shape[0], 1000)
+    old_x = np.arange(freq_fits.shape[0])
+    new_x = np.linspace(0, freq_fits.shape[0], 1000)
 
-    new_fits = []
-    for i in range(fits.shape[1]):
-        f = interp1d(old_x, fits[:, i], kind="linear", fill_value="extrapolate")
-        new_fits.append(f(new_x))
-        plt.plot(new_x, new_fits[-1], ".-", label="new")
-        plt.plot(old_x, fits[:, i], ".", label="old")
+    new_freq_fits = []
+    new_env_fits = []
+
+    for i in range(freq_fits.shape[1]):
+        ff = interp1d(old_x, freq_fits[:, i], kind="linear", fill_value="extrapolate")
+        ef = interp1d(old_x, env_fits[:, i], kind="linear", fill_value="extrapolate")
+
+        new_freq_fits.append(ff(new_x))
+        new_env_fits.append(ef(new_x))
+
+        plt.plot(new_x, ff(new_x), label="freq")
+        plt.plot(new_x, ef(new_x), label="env")
+
         plt.title(params[i])
         plt.legend()
         plt.show()
-    new_fits = np.array(new_fits).T
 
-    print(new_fits.shape)
+    new_freq_fits = np.array(new_freq_fits).T
+    new_env_fits = np.array(new_env_fits).T
 
     # plot the new distributions and overlay the old ones
-    fig, ax = plt.subplots(3, 3, figsize=(20, 20))
+    fig, ax = plt.subplots(4, 4, figsize=(20, 20))
     for i, param in enumerate(params):
-        ax[i // 3, i % 3].hist(
-            new_fits[:, i], bins=50, density=True, alpha=0.5, label="new"
-        )
-        ax[i // 3, i % 3].hist(
-            fits[:, i], bins=50, alpha=0.5, density=True, label="old"
-        )
-        ax[i // 3, i % 3].set_title(param)
-        ax[i // 3, i % 3].legend()
+        ax[i // 4, i % 4].hist(freq_fits[:, i], bins=100, alpha=0.5, label="freq")
+        ax[i // 4, i % 4].hist(new_freq_fits[:, i], bins=100, alpha=0.5, label="new freq")
+        ax[i // 4, i % 4].set_title(param)
+    fig.suptitle("Frequency fits")
+    plt.tight_layout()
+    plt.show()
+
+    # repeat for env
+    fig, ax = plt.subplots(4, 4, figsize=(20, 20))
+    for i in range(len(params)):
+        ax[i // 4, i % 4].hist(env_fits[:, i], bins=100, alpha=0.5, label="env")
+        ax[i // 4, i % 4].hist(new_env_fits[:, i], bins=100, alpha=0.5, label="new env")
+        ax[i // 4, i % 4].set_title(params[i])
+    fig.suptitle("Envelope fits")
     plt.tight_layout()
     plt.show()
 
@@ -111,9 +132,7 @@ def resample_chirp_params(path: pathlib.Path):
 
 def interface():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--path", "-p", type=pathlib.Path, help="Path to the dataset."
-    )
+    parser.add_argument("--path", "-p", type=pathlib.Path, help="Path to the dataset.")
     args = parser.parse_args()
     return args
 
