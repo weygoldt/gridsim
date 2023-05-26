@@ -32,14 +32,7 @@ def resample_chirp_params(path: pathlib.Path):
     fits = load_dataset(path)
 
     params = [
-        "mu1",
-        "mu2",
-        "widht1",
-        "widht2",
-        "height",
-        "undershoot",
-        "kurt1",
-        "kurt2",
+        
     ]
 
     # remove the nan colums
